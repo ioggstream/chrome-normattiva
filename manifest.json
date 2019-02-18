@@ -1,20 +1,21 @@
 {
-  "name": "Global Google Search",
-  "description": "Use the context menu to search a different country's Google",
-  "version": "1.0",
+  "name": "Cerca in normattiva",
+  "description": "Usa il contextMenus o la shortcut `na` per ricercare in normattiva",
+  "version": "0.8",
   "manifest_version": 2,
   "options_page": "options.html",
-  "permissions": ["contextMenus", "storage"],
+  "permissions": ["contextMenus"],
   "background": {
-    "scripts": [ "locales.js", "background.js"],
+    "scripts": [ "background.js"],
     "persistent": false
   },
+  "omnibox": { "keyword" : "na" },
   "browser_action": {
     "default_popup": "options.html"
   },
   "icons": {
-   "16": "globalGoogle16.png",
-   "48": "globalGoogle48.png",
-  "128": "globalGoogle128.png"
+   "16": "iconPA16.png",
+   "48": "iconPA48.png",
+  "128": "iconPA128.png"
  }
 }

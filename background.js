@@ -7,8 +7,8 @@
 // context menu items only need to be created at runtime.onInstalled
 chrome.runtime.onInstalled.addListener(function() {
   chrome.contextMenus.create({
-    id: "Normattiva",
-    title: "Normattiva",
+    id: "Cerca su normattiva",
+    title: "Cerca su normattiva",
     type: 'normal',
     contexts: ['selection'],
   });
@@ -44,17 +44,18 @@ function parseQueryString(q){
     let norma = null;
     let data = "";
     let normattivaMap = {
-        'decreto.del.presidente.della.repubblica': ['dpr'],
-        'decreto.legislativo': ['dlgs'],
-        'decreto.legge': ['dl'],
+        'decreto.del.presidente.della.repubblica': ['dpr', 'd.p.r'],
+        'decreto.legislativo': ['dlgs', 'd.lgs'],
+        'decreto.legge': ['dl', 'd.l'],
         'legge': ['l'],
         'costituzione': ['cost'],
         'art': ['a', 'art', 'articolo'],
-        'c': ['com']
+        'com': ['com', 'c', 'comma']
     };
 
+    q = q.toLowerCase();
     // q = 'dpr 444/2014 a 17 c 2';
-    q = q.replace(/[\.,]+/g," ");
+    q = q.replace(/[,]+/g," ");
     q = q.split(" ");
     // tipo di norma.
     let tipo = q[0];
@@ -73,6 +74,16 @@ function parseQueryString(q){
     } else {
         norma = numero;
     }
+
+    // remove "articolo"
+    if (q[2] && normattivaMap['art'].includes(q[2].trim("."))) {
+      q.splice(2, 1);
+    }
+    // remove "comma"
+    if (q[3] && normattivaMap['com'].includes(q[3].trim("."))) {
+      q.splice(3, 1);
+    }
+    
     return {
       "tipo": tipo,
       "data": data,
@@ -93,44 +104,26 @@ function serializeQuery(qItem){
   return ret;
 }
 
-chrome.contextMenus.onClicked.addListener(function(item, tab) {
-  // alert(item.selectionText);
-  let qItem = parseLongString(item.selectionText);
+
+// Create 
+function createSearchUrl(text) {
+  let qItem = parseLongString(text);
   if (!qItem) {
-    qItem = parseQueryString(item.selectionText);
+    qItem = parseQueryString(text);
   }
-  alert(qItem);
+  console.log(qItem);
 
   let url =
     'http://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:' + serializeQuery(qItem);
-    
-  chrome.tabs.create({url: url, index: tab.index + 1});
+  return url;
+}
+
+// Allow searching from chrome bar.
+chrome.omnibox.onInputEntered.addListener(function(text) {
+  chrome.tabs.create({url: createSearchUrl(text)});
 });
 
-chrome.storage.onChanged.addListener(function(list, sync) {
-  let newlyDisabled = [];
-  let newlyEnabled = [];
-  let currentRemoved = list.removedContextMenu.newValue;
-  let oldRemoved = list.removedContextMenu.oldValue || [];
-  for (let key of Object.keys(kLocales)) {
-    if (currentRemoved.includes(key) && !oldRemoved.includes(key)) {
-      newlyDisabled.push(key);
-    } else if (oldRemoved.includes(key) && !currentRemoved.includes(key)) {
-      newlyEnabled.push({
-        id: key,
-        title: kLocales[key]
-      });
-    }
-  }
-  for (let locale of newlyEnabled) {
-    chrome.contextMenus.create({
-      id: locale.id,
-      title: locale.title,
-      type: 'normal',
-      contexts: ['selection'],
-    });
-  }
-  for (let locale of newlyDisabled) {
-    chrome.contextMenus.remove(locale);
-  }
+// Allow searching from selected text.
+chrome.contextMenus.onClicked.addListener(function(item, tab) {
+    chrome.tabs.create({url: createSearchUrl(item.selectionText), index: tab.index + 1});
 });
